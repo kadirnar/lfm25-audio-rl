@@ -12,7 +12,7 @@
 8. Repeat promising methods on noisy and compositional data, keeping the evaluation protocol fixed.
 9. Select settings with validation data and evaluate the reserved test set once for the final comparison.
 
-Each command is available in the README. The macOS preview is deliberately tiny and can contain no held-out examples; use the 128-example recipes for a first split and a larger separately designed corpus for meaningful experiments.
+The commands are in [Running experiments](RUNNING.md). The macOS preview is deliberately tiny and can contain no held-out examples; use the 128-example recipes for a first split and a larger separately designed corpus for meaningful experiments.
 
 ## Matrix
 
