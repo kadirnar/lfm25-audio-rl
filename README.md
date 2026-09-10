@@ -28,7 +28,7 @@ Use Python 3.12 and [uv](https://docs.astral.sh/uv/getting-started/installation/
 ```bash
 git clone https://github.com/kadirnar/lfm25-audio-rl.git
 cd lfm25-audio-rl
-uv sync --extra dev --extra synthetic
+uv sync --extra dev --extra synthetic --extra metrics
 uv run pytest -q
 ```
 
@@ -59,6 +59,20 @@ uv run lfm-rl train --config configs/experiments/grpo_text.yaml --data data/v1_c
 ```
 
 Start with the default ten steps. See [how to test, evaluate, and resume a run](docs/RUNNING.md).
+
+## Evaluate answers
+
+Score answer correctness, speech quality, speaker similarity, prosody, and speed. The default setup works on saved audio and transcripts without model downloads or API calls.
+
+```bash
+uv run lfm-rl score --config configs/metrics/default.yaml \
+  --data data/v1_clean --predictions runs/base/predictions.jsonl \
+  --output runs/base-scores
+```
+
+See the [evaluation guide](docs/EVALUATION.md), [metric research](docs/METRIC_RESEARCH.md), and [optional scorer setup](docs/METRIC_SETUP.md). Learned scorers have API mock tests; pretrained quality results still need a real evaluation run.
+
+If you changed environments for training, install the `metrics` extra again before scoring.
 
 ## Available methods
 

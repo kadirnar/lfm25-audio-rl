@@ -177,3 +177,7 @@ Use a new output folder. The command creates the audio, records, metadata, and c
 The [synthetic pipeline](SYNTHETIC_PIPELINE.md) writes this same format. It supports MOSS-TTS, jordandare/echo-tts, Qwen3-TTS, and Zonos. TTS details, voice settings, source revisions, LLM response information, and audio checks are stored in `provenance`.
 
 Use `grounded_qa` for the current exact-answer RL reward. `dialogue` data is intended for SFT until an open-ended reward is added. Both modes include reference answer audio after the speech stage.
+
+## Evaluation labels
+
+Optional labels belong in `provenance.evaluation`. They can mark open-ended answers, accepted alternatives, word constraints, a target-speaker reference, and whether answer audio is time-aligned. See the [evaluation guide](EVALUATION.md#tell-the-scorer-what-references-mean) for examples. A TTS-generated answer recording is not automatically an aligned waveform reference.

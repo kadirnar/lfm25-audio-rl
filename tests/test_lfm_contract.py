@@ -168,3 +168,20 @@ def test_audio_sampler_records_only_terminal_first_codebook(tiny_model, monkeypa
     assert result[0] == 2048 and result[1] == 1
     assert (event.tokens == 2048).all()
     assert event.logps.shape == (1,)
+
+
+def test_measured_generation_reports_tokens_without_inventing_playable_audio(
+    tiny_model, monkeypatch
+):
+    from lfm_audio_rl import lfm
+    from lfm_audio_rl.config import Experiment
+    from lfm_audio_rl.metrics.config import Timing
+
+    chat, processor = chat_fixture()
+    monkeypatch.setattr(lfm, "prompt_chat", lambda *args: chat)
+    rollout = lfm.generate(tiny_model, processor, None, Experiment(max_new_tokens=10), measure=True)
+    timing = Timing.model_validate(rollout.timing)
+    assert timing.generation_seconds > 0
+    assert timing.first_text_seconds is not None or timing.first_audio_token_seconds is not None
+    assert timing.first_audio_seconds is None
+    assert timing.audio_ready_seconds is None

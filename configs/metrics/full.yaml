@@ -1,0 +1,25 @@
+# Install the optional scorers and replace these paths before running.
+normalization: basic
+groups: [text, audio, timing, instructions, prosody, reference, speaker, bertscore, dnsmos, nisqa, utmos, fad, judge]
+reference_metrics: [si_sdr, snr, stoi, estoi, pesq, visqol, mcd]
+bootstrap_samples: 1000
+seed: 42
+device: cpu
+asr_model: null
+speaker_model:
+  path: work/scorers/ecapa
+bert_model:
+  path: work/scorers/roberta-large
+  layers: 17
+clap_model:
+  path: work/scorers/clap
+utmos_checkpoint: work/scorers/utmos/fold0_s42_best_model.pth
+nisqa_weights_dir: work/scorers/nisqa
+dnsmos_weights_dir: work/scorers/dnsmos
+visqol_model: work/scorers/visqol/libsvm_nu_svr_model.txt
+judge:
+  model: qwen/qwen3.5-35b-a3b
+  max_requests: 100
+  max_attempts: 3
+  max_tokens: 1024
+fail_on_metric_error: true

@@ -5,7 +5,7 @@ Run these commands from the repository folder. See the [README](../README.md) fo
 ## Test the code on CPU
 
 ```bash
-uv sync --extra dev --extra synthetic
+uv sync --extra dev --extra synthetic --extra metrics
 uv run pytest -q
 uv run lfm-rl smoke --output runs/cpu-smoke
 ```
@@ -15,11 +15,13 @@ The smoke command checks eight training objectives using a tiny test model. Its 
 To also test small versions of the upstream audio model's layers:
 
 ```bash
-uv sync --extra dev --extra synthetic --extra model
+uv sync --extra dev --extra synthetic --extra metrics --extra model
 uv run pytest -q
 ```
 
 These tests do not download pretrained model weights.
+
+For the full local metric tests, also add `--extra metrics-native`. This builds PESQ and PySPTK and needs a C/C++ compiler. Learned metric models are mocked in tests.
 
 ## Create the three dataset versions
 
@@ -44,12 +46,14 @@ This uses the installed Samantha voice. You can change the voice in the YAML fil
 Real-model commands need a BF16-capable NVIDIA GPU, a compatible CUDA setup, and the model and ASR packages:
 
 ```bash
-uv sync --extra model --extra asr --extra dev
+uv sync --extra model --extra asr --extra metrics --extra dev
 uv run lfm-rl evaluate --config configs/experiments/grpo_text.yaml \
   --data data/v1_clean --output runs/base-validation --split validation
 ```
 
 ASR means speech recognition. It checks the words in the model's spoken reply. These commands download the configured model weights. For repeatable comparisons, use the same fixed ASR model files for every run.
+
+For the complete metric report, add `--metrics-config configs/metrics/default.yaml`. Evaluation also writes `predictions.jsonl` with audio hashes, model metadata, and measured timing. See the [evaluation guide](EVALUATION.md) for OpenRouter judging, optional speech scorers, human ratings, and grouped comparisons.
 
 ## Train
 
@@ -102,7 +106,9 @@ This writes 81 configurations covering three datasets, three seeds, and nine tra
 | `metrics.jsonl` | Scores, losses, and timing for each training step |
 | `rollouts.jsonl` | Generated reply text, recognized speech, and rewards for RL runs |
 | `checkpoint.pt` | Saved adapters and training state |
-| `evaluation.json` | Results for each evaluation question |
+| `evaluation.json` | Legacy reward results for each evaluation question |
+| `predictions.jsonl` | Generated text, ASR, audio hashes, model metadata, and timing |
+| `metrics/metrics.json` | Optional full metric report, coverage, and grouped confidence intervals |
 | `*.wav` | Generated speech to listen to |
 
 Keep generated datasets and training outputs outside Git. More detailed controls and planned features are listed in the [experiment plan](EXPERIMENTS.md).

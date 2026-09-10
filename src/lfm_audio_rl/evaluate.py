@@ -1,6 +1,8 @@
 """Held-out evaluation with a frozen independent ASR scorer and saved audio."""
 
 import json
+import platform
+import time
 from pathlib import Path
 
 import numpy as np
@@ -8,7 +10,7 @@ import soundfile as sf
 import torch
 
 from .config import Experiment
-from .data import digest, load_dataset, safe_audio_path
+from .data import digest, file_hash, load_dataset, safe_audio_path
 from .lora import inject_lora, load_adapter_state
 from .rewards import WhisperScorer, score_reply
 
@@ -35,6 +37,8 @@ def compare_runs(before_path: Path, after_path: Path) -> dict:
     for key in ["dataset_hash", "split", "seed", "sampling", "asr_model", "reward_version"]:
         if before[key] != after[key]:
             raise ValueError(f"Evaluation protocols differ: {key}")
+    if any(row["reward"] is None for row in before["results"] + after["results"]):
+        raise ValueError("Use compare-metrics for open-ended evaluation reports")
     a = {row["example_id"]: row["reward"]["total"] for row in before["results"]}
     b = {row["example_id"]: row["reward"]["total"] for row in after["results"]}
     if set(a) != set(b) or len(a) != len(before["results"]) or len(b) != len(after["results"]):
@@ -49,6 +53,8 @@ def evaluate(
     checkpoint: Path | None,
     split: str = "test",
     limit: int | None = None,
+    metrics_config=None,
+    warmup: int = 1,
 ):
     rows, metadata = load_dataset(data, require_audio=True)
     if split not in {"validation", "test"}:
@@ -60,10 +66,8 @@ def evaluate(
         rows = rows[:limit]
     if not rows:
         raise ValueError("Empty evaluation split")
-    if any(r.provenance.get("reward_protocol") == "open_ended" for r in rows):
-        raise ValueError(
-            "Dialogue evaluation needs an open-ended scorer; this command uses exact answers"
-        )
+    if warmup < 0:
+        raise ValueError("warmup must be nonnegative")
     if not torch.cuda.is_available() or not torch.cuda.is_bf16_supported():
         raise RuntimeError("Real-model evaluation currently requires a BF16-capable CUDA GPU")
     from liquid_audio import LFM2AudioProcessor
@@ -92,19 +96,72 @@ def evaluate(
             )
         load_adapter_state(model, state["adapters"])
     scorer = WhisperScorer(config.asr_model, config.asr_device)
-    results = []
+    generation_source = {
+        "model_id": config.model_id,
+        "model_revision": config.model_revision,
+        "adapter_sha256": file_hash(checkpoint) if checkpoint else "base",
+        "seed": str(config.seed),
+        "temperature": str(config.temperature),
+        "max_new_tokens": str(config.max_new_tokens),
+    }
+    for _ in range(warmup):
+        warm = generate(model, processor, safe_audio_path(data, rows[0].input_audio), config)
+        decode_audio(processor, warm)
+    results, predictions = [], []
     for row in rows:
         # Per-example seeding ensures that the evaluation subset/order is irrelevant.
         torch.manual_seed(config.seed + int(row.id[:8], 16))
-        rollout = generate(model, processor, safe_audio_path(data, row.input_audio), config)
+        torch.cuda.reset_peak_memory_stats()
+        rollout = generate(
+            model, processor, safe_audio_path(data, row.input_audio), config, measure=True
+        )
+        torch.cuda.synchronize()
+        decode_start = time.perf_counter()
         waveform = decode_audio(processor, rollout)
+        torch.cuda.synchronize()
+        timing = dict(rollout.timing, decode_seconds=time.perf_counter() - decode_start)
+        timing["audio_ready_seconds"] = timing["generation_seconds"] + timing["decode_seconds"]
+        timing["peak_memory_bytes"] = torch.cuda.max_memory_allocated()
+        timing["environment"] = {
+            "gpu": torch.cuda.get_device_name(),
+            "torch": torch.__version__,
+            "cuda": str(torch.version.cuda),
+            "platform": platform.platform(),
+            "precision": "bf16",
+            "warmup_runs": str(warmup),
+            "scope": "input_preparation_to_full_decoded_audio; synchronized; excludes_ASR_and_file_write",
+        }
         asr = ""
         audio_path = output / f"{row.id}.wav"
         if waveform is not None:
             sf.write(audio_path, waveform, 24000)
             asr = scorer.transcribe(str(audio_path))
-        reward = score_reply(
-            row.answer, rollout.text, asr, waveform, truncated=not rollout.terminated
+        default_mode = (
+            "open"
+            if row.provenance.get("reward_protocol") == "open_ended" or row.task == "dialogue"
+            else "closed"
+        )
+        is_open = row.provenance.get("evaluation", {}).get("answer_mode", default_mode) == "open"
+        reward = (
+            None
+            if is_open
+            else score_reply(
+                row.answer, rollout.text, asr, waveform, truncated=not rollout.terminated
+            )
+        )
+        predictions.append(
+            {
+                "example_id": row.id,
+                "generation": generation_source,
+                "text": rollout.text,
+                "asr": asr,
+                "asr_model": config.asr_model,
+                "audio": audio_path.name if waveform is not None else None,
+                "audio_sha256": file_hash(audio_path) if waveform is not None else None,
+                "terminated": rollout.terminated,
+                "timing": timing,
+                "error": "no_audio_output" if waveform is None else None,
+            }
         )
         results.append(
             {
@@ -112,10 +169,11 @@ def evaluate(
                 "text": rollout.text,
                 "asr": asr,
                 "answer": row.answer,
-                "reward": reward.to_dict(),
+                "reward": reward.to_dict() if reward is not None else None,
                 "audio": audio_path.name if waveform is not None else None,
             }
         )
+    rewards = [r["reward"]["total"] for r in results if r["reward"] is not None]
     report = {
         "dataset_hash": metadata["manifest_sha256"],
         "split": split,
@@ -128,8 +186,21 @@ def evaluate(
         },
         "reward_version": "spoken-exact-v1",
         "checkpoint": str(checkpoint) if checkpoint else "base",
-        "mean_reward": sum(r["reward"]["total"] for r in results) / len(results),
+        "mean_reward": sum(rewards) / len(rewards) if rewards else None,
+        "reward_coverage": len(rewards) / len(results),
+        "warmup_runs": warmup,
         "results": results,
     }
     (output / "evaluation.json").write_text(json.dumps(report, indent=2) + "\n")
-    return {"mean_reward": report["mean_reward"], "n": len(results), "output": str(output)}
+    prediction_path = output / "predictions.jsonl"
+    prediction_path.write_text("".join(json.dumps(p) + "\n" for p in predictions))
+    if metrics_config is not None:
+        from .metrics.runner import score_predictions
+
+        score_predictions(metrics_config, data, prediction_path, output / "metrics", split, limit)
+    return {
+        "mean_reward": report["mean_reward"],
+        "n": len(results),
+        "output": str(output),
+        "predictions": str(prediction_path),
+    }

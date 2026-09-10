@@ -6,7 +6,7 @@ from pathlib import Path
 import yaml
 
 from .config import DatasetRecipe, Experiment, read_config
-from .data import build_dataset, digest, load_dataset
+from .data import build_dataset, digest, file_hash, load_dataset
 
 
 def main():
@@ -38,6 +38,8 @@ def main():
     evaluate.add_argument("--checkpoint", type=Path)
     evaluate.add_argument("--split", choices=["validation", "test"], default="test")
     evaluate.add_argument("--limit", type=int)
+    evaluate.add_argument("--metrics-config", type=Path)
+    evaluate.add_argument("--warmup", type=int, default=1)
     compare = commands.add_parser(
         "compare", help="Paired bootstrap comparison of matching evaluations"
     )
@@ -61,8 +63,69 @@ def main():
     )
     synth_plan.add_argument("--text-config", type=Path, required=True)
     synth_plan.add_argument("--audio-config", type=Path, required=True)
+    score = commands.add_parser("score", help="Score saved speech-to-speech predictions")
+    score.add_argument("--config", type=Path, required=True)
+    score.add_argument("--data", type=Path, required=True)
+    score.add_argument("--predictions", type=Path, required=True)
+    score.add_argument("--output", type=Path, required=True)
+    score.add_argument("--split", choices=["train", "validation", "test", "all"], default="test")
+    score.add_argument("--limit", type=int)
+    compare_metrics = commands.add_parser(
+        "compare-metrics", help="Paired metric differences with grouped confidence intervals"
+    )
+    compare_metrics.add_argument("before", type=Path)
+    compare_metrics.add_argument("after", type=Path)
+    compare_metrics.add_argument("--allow-partial", action="store_true")
+    human = commands.add_parser("score-human", help="Summarize real listening ratings")
+    human.add_argument("--ratings", type=Path, required=True)
+    human.add_argument("--kind", choices=["mos", "preference"], default="mos")
+    human.add_argument("--metrics-report", type=Path)
+    human.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
-    if args.command == "synth-text":
+    if args.command == "score":
+        from .metrics.config import MetricConfig
+        from .metrics.runner import score_predictions
+
+        report = score_predictions(
+            read_config(args.config, MetricConfig),
+            args.data,
+            args.predictions,
+            args.output,
+            args.split,
+            args.limit,
+        )
+        result = {
+            "n_expected": report["n_expected"],
+            "n_predictions": report["n_predictions"],
+            "report": str(args.output / "metrics.json"),
+        }
+    elif args.command == "compare-metrics":
+        from .metrics.statistics import compare_reports
+
+        result = compare_reports(
+            json.loads(args.before.read_text()),
+            json.loads(args.after.read_text()),
+            allow_partial=args.allow_partial,
+        )
+    elif args.command == "score-human":
+        from .metrics.human import summarize_ratings
+
+        groups = None
+        if args.metrics_report:
+            report = json.loads(args.metrics_report.read_text())
+            groups = {r["example_id"]: r["semantic_group"] for r in report["rows"]}
+        result = summarize_ratings(
+            [json.loads(line) for line in args.ratings.read_text().splitlines() if line.strip()],
+            args.kind,
+            groups,
+        )
+        result["ratings_sha256"] = file_hash(args.ratings)
+        if args.metrics_report:
+            result["metrics_report_sha256"] = file_hash(args.metrics_report)
+        args.output.parent.mkdir(parents=True, exist_ok=True)
+        with args.output.open("x") as stream:
+            stream.write(json.dumps(result, indent=2) + "\n")
+    elif args.command == "synth-text":
         from .synthetic.config import TextConfig
         from .synthetic.text import generate_text
 
@@ -105,6 +168,7 @@ def main():
         )
     elif args.command == "evaluate":
         from .evaluate import evaluate as evaluate_model
+        from .metrics.config import MetricConfig
 
         result = evaluate_model(
             read_config(args.config, Experiment),
@@ -113,6 +177,8 @@ def main():
             args.checkpoint,
             args.split,
             args.limit,
+            read_config(args.metrics_config, MetricConfig) if args.metrics_config else None,
+            args.warmup,
         )
     elif args.command == "compare":
         from .evaluate import compare_runs

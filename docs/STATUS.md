@@ -17,7 +17,7 @@
 
 Validation used Python 3.12.12 on macOS arm64, PyTorch 2.8.0, liquid-audio 1.3.0 and Transformers 4.57.6. No pretrained model weights were downloaded for these checks.
 
-**50 tests passed.** They cover objective gradients and hand-calculated cases, masking and reduction, synthetic split stability and tamper detection, waveform/reward failures, LoRA reference isolation, checkpoint/RNG restoration, paired-comparison checks, and the actual upstream architecture at tiny random dimensions.
+**79 tests passed.** They cover objective gradients and hand-calculated cases, masking and reduction, synthetic split stability and tamper detection, waveform/reward failures, LoRA reference isolation, checkpoint/RNG restoration, paired-comparison checks, and the actual upstream architecture at tiny random dimensions.
 
 The upstream architecture tests exercise an attention-plus-convolution language backbone, a Conformer input encoder and all eight audio codebooks. Cached generation agrees with teacher-forced selected-action log probabilities within `2e-4` on this FP32 CPU fixture, for both text and joint scopes. Gradients reach LoRA parameters. Terminal text decisions are recorded; terminal audio events retain only their first-codebook probability.
 
@@ -50,4 +50,16 @@ The [experiment protocol](EXPERIMENTS.md) defines the next validation sequence a
 
 Implemented a cached OpenRouter text stage and isolated MOSS-TTS v1.5, jordandare/echo-tts, Qwen3-TTS CustomVoice/Base, and Zonos v0.1 Transformer workers. The speech stage exports the existing dataset format with audio checks, optional ASR, source revisions, and voice terms.
 
-CPU tests cover HTTP failure handling, caching, resume, split consistency, audio checks, and mocked upstream API contracts. Paid OpenRouter requests and pretrained GPU synthesis have not been run. The worker installation instructions need validation on a CUDA machine. The initial scope is English single-turn data; there is no distributed scheduler, speaker-held-out split policy, or open-ended RL judge yet.
+CPU tests cover HTTP failure handling, caching, resume, split consistency, audio checks, and mocked upstream API contracts. Paid OpenRouter requests and pretrained GPU synthesis have not been run. The worker installation instructions need validation on a CUDA machine. The initial scope is English single-turn data; there is no distributed scheduler, speaker-held-out split policy, or open-ended RL reward yet. A separate OpenRouter evaluation judge is now available.
+
+## Evaluation metrics
+
+Implemented a saved-prediction scoring pipeline and LFM evaluation export with model metadata, audio hashes, and measured timing. The suite covers text errors and overlap, answer matching, instruction checks, waveform diagnostics, loudness, pitch, aligned reference metrics, speaker similarity, predicted speech quality, CLAP distribution distance, OpenRouter answer judging, and human-rating summaries. RL study helpers provide target likelihood, pass@k, and reward-group diagnostics.
+
+Reports retain missing predictions as failures, distinguish missing transcripts from empty transcripts, show score coverage, and resample semantic groups for confidence intervals. Base-versus-RL comparisons check dataset/protocol identity and paired availability. Scoring supports cached resume with input, audio, asset, and code checksums.
+
+The expanded local suite has 79 passing tests. Real library tests cover BLEU, chrF, TER, ROUGE-L, loudness, pYIN, STOI, ESTOI, PESQ, and MCD on local test signals. Tests also check complete CLI reporting, the LFM prediction export, comparison denominators, invalid scores, judge budgets/caches, model API contracts, and preservation of random state. GitHub CI installs the native metric extra as well as the model and base metric extras.
+
+Pretrained ECAPA, BERTScore, CLAP, DNSMOS, NISQA, UTMOSv2, ViSQOL native inference, and OpenRouter judging were not run. Their adapters have mock contract tests. LFM generation still requires pretrained CUDA validation; timing from test fixtures is not a speed result. No listening ratings or official benchmark scores were collected. The suite does not reproduce the complete VoiceBench, IFEval, or safety benchmark protocols.
+
+Read the [evaluation guide](EVALUATION.md), [metric research](METRIC_RESEARCH.md), and [scorer setup](METRIC_SETUP.md) for definitions and limits.

@@ -1,0 +1,8 @@
+normalization: basic
+groups: [text, audio, timing, instructions]
+bootstrap_samples: 1000
+seed: 42
+# null uses the supplied audio transcript. Set a fixed local Whisper model
+# directory to transcribe the saved output again with an independent scorer.
+asr_model: null
+fail_on_metric_error: true

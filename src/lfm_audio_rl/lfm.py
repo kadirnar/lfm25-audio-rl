@@ -6,7 +6,8 @@ The adapter is intentionally single-worker; a model instance cannot serve
 concurrent rollouts while its audio-logit callbacks are installed.
 """
 
-from dataclasses import dataclass
+import time
+from dataclasses import dataclass, field
 from pathlib import Path
 
 import soundfile as sf
@@ -28,6 +29,7 @@ class Rollout:
     text: str
     audio_codes: torch.Tensor
     terminated: bool
+    timing: dict = field(default_factory=dict)
 
 
 def selected_logps(logits: torch.Tensor, labels: torch.Tensor, temperature: float):
@@ -141,10 +143,19 @@ def pack_rollout(chat, events: list[Event], processor) -> Rollout:
 
 
 @torch.no_grad()
-def generate(model, processor, input_path: Path, config) -> Rollout:
+def generate(model, processor, input_path: Path, config, *, measure=False) -> Rollout:
+    def stamp():
+        if torch.cuda.is_available():
+            torch.cuda.synchronize()
+        return time.perf_counter() - start
+
+    if measure and torch.cuda.is_available():
+        torch.cuda.synchronize()
+    start = time.perf_counter() if measure else None
+    timing = {}
     chat = prompt_chat(processor, input_path, model.codebooks)
     model.events = []
-    for _ in model.generate_interleaved(
+    for token in model.generate_interleaved(
         **chat,
         max_new_tokens=config.max_new_tokens,
         text_temperature=config.temperature,
@@ -152,8 +163,15 @@ def generate(model, processor, input_path: Path, config) -> Rollout:
         audio_temperature=config.temperature,
         audio_top_k=None,
     ):
-        pass
-    return pack_rollout(chat, list(model.events), processor)
+        if measure:
+            key = "first_text_seconds" if token.numel() == 1 else "first_audio_token_seconds"
+            if key not in timing:
+                timing[key] = stamp()
+    rollout = pack_rollout(chat, list(model.events), processor)
+    if measure:
+        timing["generation_seconds"] = stamp()
+        rollout.timing = timing
+    return rollout
 
 
 def score_rollout(model, rollout: Rollout, *, temperature: float, scope: str):
