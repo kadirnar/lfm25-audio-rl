@@ -1,0 +1,16 @@
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+dist/
+data/
+runs/
+*.wav
+*.aiff
+*.pt
+*.safetensors
+.env
+.env.*
+.DS_Store

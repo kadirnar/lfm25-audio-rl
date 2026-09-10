@@ -1,0 +1,7 @@
+version: v1_clean
+seed: 42
+count: 8
+tts: say
+voice: Samantha
+sample_rate: 24000
+synthesize_answers: true

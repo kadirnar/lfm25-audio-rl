@@ -1,0 +1,13 @@
+algorithm: grpo
+scope: text
+seed: 42
+steps: 10
+group_size: 4
+lr: 0.00001
+temperature: 1.0
+top_k: null
+kl_beta: 0.02
+anchor_weight: 0.1
+max_new_tokens: 256
+asr_model: base.en
+asr_device: cpu

@@ -1,0 +1,19 @@
+name: tests
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  cpu:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+      - run: uv sync --locked --extra dev --extra model
+      - run: uv run ruff check .
+      - run: uv run ruff format --check .
+      - run: uv run pytest -q
+      - run: uv run lfm-rl smoke --output runs/ci-smoke

@@ -1,0 +1,7 @@
+version: v3_compositional
+seed: 42
+count: 128
+tts: espeak
+voice: en-us
+sample_rate: 24000
+synthesize_answers: true

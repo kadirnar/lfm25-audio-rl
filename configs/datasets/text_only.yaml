@@ -1,0 +1,4 @@
+version: v1_clean
+seed: 42
+count: 128
+tts: none

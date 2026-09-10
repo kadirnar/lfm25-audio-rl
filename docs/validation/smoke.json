@@ -1,0 +1,82 @@
+[
+  {
+    "backend": "toy_categorical",
+    "is_audio_training": false,
+    "method": "sft",
+    "seed": 42,
+    "steps": 80,
+    "initial_target_probability": 0.25,
+    "final_target_probability": 0.9835912585258484,
+    "final_loss": 0.016775375232100487
+  },
+  {
+    "backend": "toy_categorical",
+    "is_audio_training": false,
+    "method": "grpo",
+    "seed": 42,
+    "steps": 80,
+    "initial_target_probability": 0.25,
+    "final_target_probability": 0.9895325303077698,
+    "final_loss": 0.006283039227128029
+  },
+  {
+    "backend": "toy_categorical",
+    "is_audio_training": false,
+    "method": "dr_grpo",
+    "seed": 42,
+    "steps": 80,
+    "initial_target_probability": 0.25,
+    "final_target_probability": 0.9846006631851196,
+    "final_loss": 0.006245630793273449
+  },
+  {
+    "backend": "toy_categorical",
+    "is_audio_training": false,
+    "method": "rloo",
+    "seed": 42,
+    "steps": 80,
+    "initial_target_probability": 0.25,
+    "final_target_probability": 0.9876425862312317,
+    "final_loss": -0.0
+  },
+  {
+    "backend": "toy_categorical",
+    "is_audio_training": false,
+    "method": "reinforce",
+    "seed": 42,
+    "steps": 80,
+    "initial_target_probability": 0.25,
+    "final_target_probability": 0.9920066595077515,
+    "final_loss": 0.008143695071339607
+  },
+  {
+    "backend": "toy_categorical",
+    "is_audio_training": false,
+    "method": "dpo",
+    "seed": 42,
+    "steps": 80,
+    "initial_target_probability": 0.25,
+    "final_target_probability": 0.9931593537330627,
+    "final_loss": 0.048095040023326874
+  },
+  {
+    "backend": "toy_categorical",
+    "is_audio_training": false,
+    "method": "ipo",
+    "seed": 42,
+    "steps": 80,
+    "initial_target_probability": 0.25,
+    "final_target_probability": 0.4784354865550995,
+    "final_loss": 0.0009985922370105982
+  },
+  {
+    "backend": "toy_categorical",
+    "is_audio_training": false,
+    "method": "simpo",
+    "seed": 42,
+    "steps": 80,
+    "initial_target_probability": 0.25,
+    "final_target_probability": 0.9947457909584045,
+    "final_loss": 0.06877417862415314
+  }
+]

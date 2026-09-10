@@ -1,0 +1,38 @@
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[project]
+name = "lfm-audio-rl"
+version = "0.1.0"
+description = "Synthetic speech datasets and reproducible RL experiments for LFM2.5-Audio"
+readme = "README.md"
+requires-python = ">=3.12,<3.14"
+license = "MIT"
+dependencies = [
+  "torch>=2.8,<2.9", "numpy>=2,<3", "pydantic>=2.11,<3",
+  "PyYAML>=6,<7", "soundfile>=0.13,<0.14",
+]
+
+[project.optional-dependencies]
+model = ["liquid-audio==1.3.0", "transformers>=4.55.4,<5", "torchaudio>=2.8,<2.9"]
+asr = ["faster-whisper>=1.2,<2"]
+dev = ["pytest>=8,<9", "ruff>=0.12,<1"]
+
+[project.scripts]
+lfm-rl = "lfm_audio_rl.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/lfm_audio_rl"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+ignore = ["E501"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = ["model: small upstream model contract test; requires the model extra"]
