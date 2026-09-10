@@ -17,7 +17,7 @@
 
 Validation used Python 3.12.12 on macOS arm64, PyTorch 2.8.0, liquid-audio 1.3.0 and Transformers 4.57.6. No pretrained model weights were downloaded for these checks.
 
-**27 tests passed.** They cover objective gradients and hand-calculated cases, masking and reduction, synthetic split stability and tamper detection, waveform/reward failures, LoRA reference isolation, checkpoint/RNG restoration, paired-comparison checks, and the actual upstream architecture at tiny random dimensions.
+**50 tests passed.** They cover objective gradients and hand-calculated cases, masking and reduction, synthetic split stability and tamper detection, waveform/reward failures, LoRA reference isolation, checkpoint/RNG restoration, paired-comparison checks, and the actual upstream architecture at tiny random dimensions.
 
 The upstream architecture tests exercise an attention-plus-convolution language backbone, a Conformer input encoder and all eight audio codebooks. Cached generation agrees with teacher-forced selected-action log probabilities within `2e-4` on this FP32 CPU fixture, for both text and joint scopes. Gradients reach LoRA parameters. Terminal text decisions are recorded; terminal audio events retain only their first-codebook probability.
 
@@ -38,10 +38,16 @@ The matrix command produced 81 valid experiment configurations. The real trainin
 | SFT initialization | SFT can run independently; a new RL run cannot yet warm-start from an SFT adapter with a distinct reference policy |
 | WavAlign/ALPO | Fixed anchoring and action masks are available; adaptive mixing and reward-specific routing are research plans |
 | PPO/DAPO/KTO | Research only; no trainer under these names |
-| Data scale/diversity | Symbolic development tasks and local TTS; no neural teacher/voice factory, broad conversation corpus or multilingual adaptation |
+| Data scale/diversity | OpenRouter text and four neural TTS adapters are implemented; no large corpus or multilingual adaptation has been validated |
 | Distributed/production use | Single process and serial rollouts; no concurrent sampling on one model instance, distributed engine or serving integration |
 | Scorer immutability | Default ASR alias is not a pinned checkpoint; controlled studies should use a pinned local model |
 | Resume logging | Checkpoint restores completed update state; append-only logs can retain attempts from an interrupted, uncheckpointed step |
 | Real-world evaluation | No external benchmark scores, human preferences or demonstrated synthetic-to-real improvement |
 
 The [experiment protocol](EXPERIMENTS.md) defines the next validation sequence and acceptance criteria. The initial code is a starting point for experiments, not evidence that the target model has improved.
+
+## OpenRouter and neural TTS
+
+Implemented a cached OpenRouter text stage and isolated MOSS-TTS v1.5, jordandare/echo-tts, Qwen3-TTS CustomVoice/Base, and Zonos v0.1 Transformer workers. The speech stage exports the existing dataset format with audio checks, optional ASR, source revisions, and voice terms.
+
+CPU tests cover HTTP failure handling, caching, resume, split consistency, audio checks, and mocked upstream API contracts. Paid OpenRouter requests and pretrained GPU synthesis have not been run. The worker installation instructions need validation on a CUDA machine. The initial scope is English single-turn data; there is no distributed scheduler, speaker-held-out split policy, or open-ended RL judge yet.

@@ -5,7 +5,7 @@ Run these commands from the repository folder. See the [README](../README.md) fo
 ## Test the code on CPU
 
 ```bash
-uv sync --extra dev
+uv sync --extra dev --extra synthetic
 uv run pytest -q
 uv run lfm-rl smoke --output runs/cpu-smoke
 ```
@@ -15,7 +15,7 @@ The smoke command checks eight training objectives using a tiny test model. Its 
 To also test small versions of the upstream audio model's layers:
 
 ```bash
-uv sync --extra dev --extra model
+uv sync --extra dev --extra synthetic --extra model
 uv run pytest -q
 ```
 

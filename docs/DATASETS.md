@@ -171,3 +171,9 @@ uv run lfm-rl validate-data data/v1_clean --require-audio
 Use a new output folder. The command creates the audio, records, metadata, and checksums together.
 
 `configs/datasets/text_only.yaml` creates text records for development. It cannot be used to train the speech model until input audio is added.
+
+## OpenRouter and neural TTS
+
+The [synthetic pipeline](SYNTHETIC_PIPELINE.md) writes this same format. It supports MOSS-TTS, jordandare/echo-tts, Qwen3-TTS, and Zonos. TTS details, voice settings, source revisions, LLM response information, and audio checks are stored in `provenance`.
+
+Use `grounded_qa` for the current exact-answer RL reward. `dialogue` data is intended for SFT until an open-ended reward is added. Both modes include reference answer audio after the speech stage.

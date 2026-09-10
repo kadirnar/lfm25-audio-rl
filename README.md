@@ -28,7 +28,7 @@ Use Python 3.12 and [uv](https://docs.astral.sh/uv/getting-started/installation/
 ```bash
 git clone https://github.com/kadirnar/lfm25-audio-rl.git
 cd lfm25-audio-rl
-uv sync --extra dev
+uv sync --extra dev --extra synthetic
 uv run pytest -q
 ```
 
@@ -42,6 +42,12 @@ uv run lfm-rl validate-data data/v1_clean --require-audio
 ```
 
 Other recipes add noise or harder questions. For a small macOS example, use `configs/datasets/macos_preview.yaml`.
+
+## Use OpenRouter and neural TTS
+
+Generate text with OpenRouter, then create speech with MOSS-TTS, Echo-TTS, Qwen3-TTS, or Zonos. Reuse the same text to compare different models and voices.
+
+See the [synthetic data guide](docs/SYNTHETIC_PIPELINE.md) and [TTS setup](docs/TTS_SETUP.md). The adapters have CPU mock tests; real GPU generation still needs validation.
 
 ## Train
 

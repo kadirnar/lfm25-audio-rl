@@ -11,3 +11,9 @@ This repository calls separately installed packages and does not redistribute th
 | Faster Whisper | [Project license](https://github.com/SYSTRAN/faster-whisper/blob/master/LICENSE) | Optional ASR scoring implementation; consult checkpoint terms independently. |
 
 For each future neural TTS engine, record the engine license, exact checkpoint, voice provenance, output terms, and whether synthetic outputs may be redistributed. Do this when selecting the actual provider; an engine's code license does not establish the rights of every available voice or weight file. Model downloads are performed by upstream libraries only when a real-model command is run.
+
+## Synthetic speech workers
+
+Adapters follow the examples in [MOSS-TTS](https://github.com/OpenMOSS/MOSS-TTS), [Echo-TTS](https://github.com/jordandare/echo-tts), [Qwen3-TTS](https://github.com/QwenLM/Qwen3-TTS), and [Zonos](https://github.com/Zyphra/Zonos). Model and source revisions are recorded in `src/lfm_audio_rl/synthetic/config.py`. The repositories and weights are downloaded separately, not included here.
+
+Echo's repository is primarily MIT code, with some Apache-2.0 files. Its weights and generated audio are CC-BY-NC-SA-4.0 according to the upstream license statement, including through the Fish codec. The pipeline preserves that declaration. The other selected main checkpoints declare Apache-2.0; this does not establish blanket licensing for generated datasets, reference recordings, or LLM outputs. Preserve the applicable terms for every source.

@@ -1,0 +1,32 @@
+version: four-tts-v1
+seed: 42
+# Run from the repository root. Install workers using docs/TTS_SETUP.md.
+# Remove profiles you do not want to run.
+engines:
+  - name: moss
+    engine: moss-tts
+    python: work/tts-envs/moss/bin/python
+    source_dir: work/tts-sources/MOSS-TTS
+  - name: echo
+    engine: echo-tts
+    python: work/tts-envs/echo/bin/python
+    source_dir: work/tts-sources/echo-tts
+    echo_steps: 40
+  - name: qwen-ryan
+    engine: qwen3-tts
+    python: work/tts-envs/qwen/bin/python
+    source_dir: work/tts-sources/Qwen3-TTS
+    speaker: Ryan
+    voice_id: qwen-ryan
+    voice_terms: Qwen preset voice
+  - name: zonos
+    engine: zonos
+    python: work/tts-envs/zonos/bin/python
+    source_dir: work/tts-sources/Zonos
+qa:
+  min_seconds: 0.15
+  max_seconds: 30
+  min_rms: 0.0001
+  max_clipped_fraction: 0.01
+  asr_model: base.en
+  max_wer: 0.15

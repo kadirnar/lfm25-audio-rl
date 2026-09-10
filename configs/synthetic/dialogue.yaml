@@ -1,0 +1,10 @@
+version: openrouter-dialogue-v1
+model: qwen/qwen3-30b-a3b-instruct-2507
+mode: dialogue
+count: 100
+batch_size: 10
+seed: 42
+topics:
+  - everyday conversation
+  - explaining simple activities
+max_requests: 30

@@ -60,6 +60,10 @@ def evaluate(
         rows = rows[:limit]
     if not rows:
         raise ValueError("Empty evaluation split")
+    if any(r.provenance.get("reward_protocol") == "open_ended" for r in rows):
+        raise ValueError(
+            "Dialogue evaluation needs an open-ended scorer; this command uses exact answers"
+        )
     if not torch.cuda.is_available() or not torch.cuda.is_bf16_supported():
         raise RuntimeError("Real-model evaluation currently requires a BF16-capable CUDA GPU")
     from liquid_audio import LFM2AudioProcessor

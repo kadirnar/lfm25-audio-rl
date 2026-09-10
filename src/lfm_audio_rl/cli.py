@@ -45,8 +45,50 @@ def main():
     compare.add_argument("after", type=Path)
     matrix = commands.add_parser("matrix", help="Write 81 experiment configs; does not launch jobs")
     matrix.add_argument("--output", type=Path, required=True)
+    synth_text = commands.add_parser(
+        "synth-text", help="Generate text through OpenRouter; resumes cached batches"
+    )
+    synth_text.add_argument("--config", type=Path, required=True)
+    synth_text.add_argument("--output", type=Path, required=True)
+    synth_audio = commands.add_parser(
+        "synth-audio", help="Render a text dataset with isolated neural TTS workers"
+    )
+    synth_audio.add_argument("--config", type=Path, required=True)
+    synth_audio.add_argument("--text", type=Path, required=True)
+    synth_audio.add_argument("--output", type=Path, required=True)
+    synth_plan = commands.add_parser(
+        "synth-plan", help="Show dataset size and request limits without API calls"
+    )
+    synth_plan.add_argument("--text-config", type=Path, required=True)
+    synth_plan.add_argument("--audio-config", type=Path, required=True)
     args = parser.parse_args()
-    if args.command == "data":
+    if args.command == "synth-text":
+        from .synthetic.config import TextConfig
+        from .synthetic.text import generate_text
+
+        result = generate_text(read_config(args.config, TextConfig), args.output)
+    elif args.command == "synth-audio":
+        from .synthetic.audio import render_speech
+        from .synthetic.config import SpeechConfig
+
+        result = render_speech(read_config(args.config, SpeechConfig), args.text, args.output)
+    elif args.command == "synth-plan":
+        from .synthetic.config import SpeechConfig, TextConfig
+
+        text_config = read_config(args.text_config, TextConfig)
+        audio_config = read_config(args.audio_config, SpeechConfig)
+        result = {
+            "text_examples": text_config.count,
+            "speech_examples_before_qa": text_config.count * len(audio_config.engines),
+            "audio_clips_before_qa": 2 * text_config.count * len(audio_config.engines),
+            "openrouter_model": text_config.model,
+            "request_limit_including_retries": text_config.max_requests,
+            "maximum_completion_tokens_per_request": text_config.max_tokens,
+            "profiles": [e.name for e in audio_config.engines],
+            "asr_checks": audio_config.qa.asr_model,
+            "network_calls": 0,
+        }
+    elif args.command == "data":
         result = build_dataset(read_config(args.config, DatasetRecipe), args.output)
     elif args.command == "validate-data":
         rows, metadata = load_dataset(args.dataset, require_audio=args.require_audio)

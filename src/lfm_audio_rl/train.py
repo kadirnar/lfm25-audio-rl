@@ -21,6 +21,12 @@ from .rewards import WhisperScorer, score_reply
 def preflight(config: Experiment, data: Path):
     rows, metadata = load_dataset(data, require_audio=True)
     train_rows = [row for row in rows if row.split == "train"]
+    if config.algorithm != "sft" and any(
+        r.provenance.get("reward_protocol") == "open_ended" for r in train_rows
+    ):
+        raise ValueError(
+            "Dialogue data needs an open-ended reward; use SFT or grounded_qa with this runner"
+        )
     if not train_rows:
         raise ValueError("No training examples; generate a larger dataset")
     if (config.algorithm == "sft" or config.anchor_weight) and any(
