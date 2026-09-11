@@ -17,7 +17,7 @@
 
 Validation used Python 3.12.12 on macOS arm64, PyTorch 2.8.0, liquid-audio 1.3.0 and Transformers 4.57.6. No pretrained model weights were downloaded for these checks.
 
-**79 tests passed.** They cover objective gradients and hand-calculated cases, masking and reduction, synthetic split stability and tamper detection, waveform/reward failures, LoRA reference isolation, checkpoint/RNG restoration, paired-comparison checks, and the actual upstream architecture at tiny random dimensions.
+**97 tests passed.** They cover objective gradients and hand-calculated cases, masking and reduction, synthetic split stability and tamper detection, waveform/reward failures, LoRA reference isolation, checkpoint/RNG restoration, paired-comparison checks, and the actual upstream architecture at tiny random dimensions.
 
 The upstream architecture tests exercise an attention-plus-convolution language backbone, a Conformer input encoder and all eight audio codebooks. Cached generation agrees with teacher-forced selected-action log probabilities within `2e-4` on this FP32 CPU fixture, for both text and joint scopes. Gradients reach LoRA parameters. Terminal text decisions are recorded; terminal audio events retain only their first-codebook probability.
 
@@ -58,8 +58,18 @@ Implemented a saved-prediction scoring pipeline and LFM evaluation export with m
 
 Reports retain missing predictions as failures, distinguish missing transcripts from empty transcripts, show score coverage, and resample semantic groups for confidence intervals. Base-versus-RL comparisons check dataset/protocol identity and paired availability. Scoring supports cached resume with input, audio, asset, and code checksums.
 
-The expanded local suite has 79 passing tests. Real library tests cover BLEU, chrF, TER, ROUGE-L, loudness, pYIN, STOI, ESTOI, PESQ, and MCD on local test signals. Tests also check complete CLI reporting, the LFM prediction export, comparison denominators, invalid scores, judge budgets/caches, model API contracts, and preservation of random state. GitHub CI installs the native metric extra as well as the model and base metric extras.
+The expanded local suite has 97 passing tests. Real library tests cover BLEU, chrF, TER, ROUGE-L, loudness, pYIN, STOI, ESTOI, PESQ, and MCD on local test signals. Tests also check complete CLI reporting, the LFM prediction export, comparison denominators, invalid scores, judge budgets/caches, model API contracts, and preservation of random state. GitHub CI installs the native metric extra as well as the model and base metric extras.
 
 Pretrained ECAPA, BERTScore, CLAP, DNSMOS, NISQA, UTMOSv2, ViSQOL native inference, and OpenRouter judging were not run. Their adapters have mock contract tests. LFM generation still requires pretrained CUDA validation; timing from test fixtures is not a speed result. No listening ratings or official benchmark scores were collected. The suite does not reproduce the complete VoiceBench, IFEval, or safety benchmark protocols.
 
 Read the [evaluation guide](EVALUATION.md), [metric research](METRIC_RESEARCH.md), and [scorer setup](METRIC_SETUP.md) for definitions and limits.
+
+## W&B and training options
+
+Added optional disabled/offline/online W&B scalar logging with stored run IDs, grouped offline sessions, completion/failure status, and optimizer-step charts. Logging configuration is excluded from checkpoint identity, and original default configs retain their earlier identity. W&B does not upload audio, transcripts, datasets, checkpoints, or code through this integration.
+
+Training supports sequential prompt gradient accumulation, non-reentrant backbone activation checkpointing, configurable AdamW or fused CUDA AdamW, constant/linear/cosine learning rates with warmup, checkpoint intervals, and optional cleanup of generated ASR WAV files. Initial and final checkpoints are always saved. The sampling/replay parity check and within-prompt RL advantages remain in place.
+
+Local checks include a real offline W&B SDK run, mocked online resume, loss/gradient equality with activation checkpointing on the small upstream model, all four RL methods with accumulated prompt groups, SFT gradient averaging, exact CPU checkpoint continuation, LR schedules, CLI overrides, and cleanup on errors. The current local total is 97 passing tests.
+
+Online W&B uploads, fused CUDA execution, pretrained GPU training, and speed or memory gains have not been measured. These controls configure training; they do not implement Optuna search, distributed training, or torch.compile. See the [plain training options guide](TRAINING_OPTIONS.md).

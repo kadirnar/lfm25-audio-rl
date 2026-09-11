@@ -13,6 +13,36 @@ class StrictModel(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True, allow_inf_nan=False)
 
 
+class WandbConfig(StrictModel):
+    mode: Literal["disabled", "offline", "online"] = "disabled"
+    project: str = Field(default="lfm25-audio-rl", min_length=1)
+    entity: str | None = None
+    name: str | None = None
+    group: str | None = None
+    tags: list[str] = Field(default_factory=list)
+    log_every: int = Field(default=1, ge=1)
+
+
+class TrainingOptions(StrictModel):
+    gradient_accumulation_steps: int = Field(default=1, ge=1, le=64)
+    gradient_checkpointing: bool = False
+    optimizer: Literal["adamw", "adamw_fused"] = "adamw"
+    weight_decay: float = Field(default=0.0, ge=0)
+    betas: tuple[float, float] = (0.9, 0.999)
+    eps: float = Field(default=1e-8, gt=0)
+    scheduler: Literal["constant", "linear", "cosine"] = "constant"
+    warmup_steps: int = Field(default=0, ge=0)
+    min_lr_ratio: float = Field(default=0.1, ge=0, le=1)
+    checkpoint_every: int = Field(default=1, ge=1)
+    save_rollout_audio: bool = True
+
+    @model_validator(mode="after")
+    def validate_optimizer(self):
+        if any(not 0 <= beta < 1 for beta in self.betas):
+            raise ValueError("AdamW betas must be in [0, 1)")
+        return self
+
+
 class DatasetRecipe(StrictModel):
     version: Literal["v1_clean", "v2_noisy", "v3_compositional"]
     seed: int = Field(default=42, ge=0)
@@ -55,9 +85,21 @@ class Experiment(StrictModel):
     model_revision: str = Field(default=MODEL_REVISION, pattern=r"^[0-9a-f]{40}$")
     asr_model: str = "base.en"
     asr_device: Literal["cpu", "cuda"] = "cpu"
+    wandb: WandbConfig = Field(default_factory=WandbConfig)
+    train_opt: TrainingOptions = Field(default_factory=TrainingOptions)
+
+    def training_dict(self):
+        """Tracking settings do not change checkpoint or optimizer identity."""
+        values = self.model_dump(exclude={"wandb", "train_opt"})
+        # Preserve identities of older configs when using the original defaults.
+        if self.train_opt != TrainingOptions():
+            values["train_opt"] = self.train_opt.model_dump()
+        return values
 
     @model_validator(mode="after")
     def validate_run(self):
+        if self.train_opt.warmup_steps > self.steps:
+            raise ValueError("warmup_steps cannot exceed optimizer steps")
         if not self.lora_targets or any(not t for t in self.lora_targets):
             raise ValueError("lora_targets must be nonempty")
         if self.algorithm == "sft" and self.scope != "joint":

@@ -29,6 +29,14 @@ def main():
     train.add_argument("--data", type=Path, required=True)
     train.add_argument("--output", type=Path, required=True)
     train.add_argument("--resume", action="store_true")
+    train.add_argument("--wandb-mode", choices=["disabled", "offline", "online"])
+    train.add_argument("--wandb-project")
+    train.add_argument("--wandb-entity")
+    train.add_argument("--wandb-name")
+    train.add_argument("--gradient-accumulation-steps", type=int)
+    train.add_argument(
+        "--gradient-checkpointing", action=argparse.BooleanOptionalAction, default=None
+    )
     evaluate = commands.add_parser(
         "evaluate", help="Evaluate base or adapted model on held-out speech"
     )
@@ -163,9 +171,16 @@ def main():
     elif args.command == "train":
         from .train import train as train_model
 
-        result = train_model(
-            read_config(args.config, Experiment), args.data, args.output, args.resume
-        )
+        values = read_config(args.config, Experiment).model_dump()
+        for name in ["mode", "project", "entity", "name"]:
+            value = getattr(args, f"wandb_{name}")
+            if value is not None:
+                values["wandb"][name] = value
+        for name in ["gradient_accumulation_steps", "gradient_checkpointing"]:
+            value = getattr(args, name)
+            if value is not None:
+                values["train_opt"][name] = value
+        result = train_model(Experiment.model_validate(values), args.data, args.output, args.resume)
     elif args.command == "evaluate":
         from .evaluate import evaluate as evaluate_model
         from .metrics.config import MetricConfig

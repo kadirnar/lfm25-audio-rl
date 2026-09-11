@@ -89,7 +89,9 @@ def evaluate(
         inject_lora(model.lfm, config.lora_targets, config.lora_rank, config.lora_alpha)
         state = torch.load(checkpoint, map_location="cpu", weights_only=True)
         # Check the config/data identity before evaluating adapters.
-        identity = digest({"config": config.model_dump(), "dataset": metadata["manifest_sha256"]})
+        identity = digest(
+            {"config": config.training_dict(), "dataset": metadata["manifest_sha256"]}
+        )
         if state["identity"] != identity:
             raise ValueError(
                 "Checkpoint config/dataset mismatch; use the training config and dataset"

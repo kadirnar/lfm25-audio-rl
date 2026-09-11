@@ -81,6 +81,10 @@ Use the same training config and dataset when loading its checkpoint. Compare re
 
 Use validation data to choose settings. Use the test split for the final comparison.
 
+## W&B and training options
+
+The trainer supports offline/online W&B, gradient accumulation, activation checkpointing, configurable AdamW, LR warmup/decay, and checkpoint intervals. See the [training options guide](TRAINING_OPTIONS.md). W&B is disabled by default.
+
 ## Resume an interrupted run
 
 ```bash

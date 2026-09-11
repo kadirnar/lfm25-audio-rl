@@ -60,6 +60,18 @@ uv run lfm-rl train --config configs/experiments/grpo_text.yaml --data data/v1_c
 
 Start with the default ten steps. See [how to test, evaluate, and resume a run](docs/RUNNING.md).
 
+## Track and configure training
+
+Use Weights & Biases for training charts. Choose offline mode to keep logs local.
+
+```bash
+uv sync --extra model --extra asr --extra wandb
+uv run lfm-rl train --config configs/experiments/grpo_optimized.yaml \
+  --data data/v1_clean --output runs/grpo-optimized
+```
+
+This example enables gradient accumulation, activation checkpointing, and a learning-rate schedule. See the [W&B and training options guide](docs/TRAINING_OPTIONS.md) for all settings. GPU speed and memory improvements still need measurement.
+
 ## Evaluate answers
 
 Score answer correctness, speech quality, speaker similarity, prosody, and speed. The default setup works on saved audio and transcripts without model downloads or API calls.

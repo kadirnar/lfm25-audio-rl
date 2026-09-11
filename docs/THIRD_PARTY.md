@@ -40,3 +40,7 @@ The metric code calls these projects through optional adapters. It does not bund
 | OpenRouter and selected provider | [OpenRouter documentation](https://openrouter.ai/docs) | Optional paid text judging under the selected service/model terms |
 
 See [scorer setup](METRIC_SETUP.md) for reviewed source and checkpoint revisions. No trained scorer, benchmark dataset, native binary, or human rating data is redistributed in this change.
+
+## Training tracking
+
+Optional W&B logging uses the separately installed [Weights & Biases SDK](https://github.com/wandb/wandb). Online logging uses the selected W&B account and service terms. The code does not upload model checkpoints or speech files. Offline SDK tests do not contact a W&B project.

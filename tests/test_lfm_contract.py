@@ -185,3 +185,43 @@ def test_measured_generation_reports_tokens_without_inventing_playable_audio(
     assert timing.first_text_seconds is not None or timing.first_audio_token_seconds is not None
     assert timing.first_audio_seconds is None
     assert timing.audio_ready_seconds is None
+
+
+@pytest.mark.parametrize("objective", ["policy", "sft"])
+def test_activation_checkpointing_matches_losses_and_lora_gradients(tiny_model, objective):
+    from lfm_audio_rl.optimization import enable_gradient_checkpointing
+
+    chat, processor = chat_fixture()
+    for _ in tiny_model.generate_interleaved(
+        **chat, max_new_tokens=10, text_temperature=0.9, audio_temperature=0.9
+    ):
+        pass
+    rollout = pack_rollout(chat, tiny_model.events, processor)
+
+    def loss():
+        return (
+            -score_rollout(tiny_model, rollout, temperature=0.9, scope="joint").mean()
+            if objective == "policy"
+            else tiny_model(rollout.batch).loss
+        )
+
+    baseline = loss()
+    baseline.backward()
+    expected = {
+        name: p.grad.clone() for name, p in tiny_model.named_parameters() if p.grad is not None
+    }
+    tiny_model.zero_grad(set_to_none=True)
+    assert enable_gradient_checkpointing(tiny_model.lfm) == 2
+    actual = loss()
+    actual.backward()
+    torch.testing.assert_close(actual, baseline)
+    for name, parameter in tiny_model.named_parameters():
+        if name in expected:
+            torch.testing.assert_close(parameter.grad, expected[name], atol=2e-5, rtol=2e-4)
+    assert not tiny_model.training and not tiny_model.lfm.training
+    with torch.no_grad():
+        # Generation remains cached and bypasses activation recomputation.
+        for _ in tiny_model.generate_interleaved(
+            **chat, max_new_tokens=3, text_temperature=0.9, audio_temperature=0.9
+        ):
+            pass

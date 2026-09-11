@@ -1,0 +1,27 @@
+# Example starting point. GPU speed and memory use still need measurement.
+algorithm: grpo
+scope: text
+seed: 42
+steps: 100
+group_size: 4
+lr: 0.00001
+kl_beta: 0.02
+anchor_weight: 0.1
+max_new_tokens: 256
+asr_model: base.en
+asr_device: cpu
+train_opt:
+  gradient_accumulation_steps: 2
+  gradient_checkpointing: true
+  optimizer: adamw
+  scheduler: cosine
+  warmup_steps: 10
+  min_lr_ratio: 0.1
+  checkpoint_every: 10
+  save_rollout_audio: false
+wandb:
+  mode: offline
+  project: lfm25-audio-rl
+  group: grpo-v1
+  tags: [grpo, synthetic]
+  log_every: 1
